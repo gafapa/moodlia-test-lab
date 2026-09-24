@@ -27,12 +27,13 @@ fi
 cleanup() { docker rm -f "$container" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 
-# The build-time password is replaced by runtime.php on every start.
+# The build-time password is replaced by runtime.php on every start. The base
+# image passes MOODLE_SITENAME to the installer unquoted, so it has no spaces.
 docker run -d --name "$container" ${BUILD_MEMORY:+--memory "$BUILD_MEMORY"} \
   -e DB_TYPE=sqlite3 -e MOODLE_DATABASE_TYPE=sqlite3 \
   -e SITE_URL=http://127.0.0.1:8080 -e REVERSEPROXY=true -e AUTO_UPDATE_MOODLE=true \
   -e MOODLE_USERNAME=admin -e "MOODLE_PASSWORD=build-$(openssl rand -hex 16)" \
-  -e MOODLE_EMAIL=lab@example.invalid -e MOODLE_SITENAME="MoodlIA lab ${moodle_tag} ${variant}" \
+  -e MOODLE_EMAIL=lab@example.invalid -e "MOODLE_SITENAME=MoodlIA-lab-${moodle_tag}-${variant}" \
   -e MOODLE_LANGUAGE=en \
   "$base" >/dev/null
 
@@ -40,6 +41,11 @@ health() { docker inspect -f '{{.State.Health.Status}}' "$container" 2>/dev/null
 echo "Waiting for Moodle ${moodle_tag} to install..."
 for _ in $(seq 1 180); do
   [[ "$(health)" == healthy ]] && break
+  if [[ "$(docker inspect -f '{{.State.Running}}' "$container" 2>/dev/null)" != true ]]; then
+    docker logs --tail 80 "$container" >&2
+    echo "Moodle stopped during installation" >&2
+    exit 1
+  fi
   sleep 5
 done
 if [[ "$(health)" != healthy ]]; then
