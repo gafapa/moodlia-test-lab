@@ -115,10 +115,29 @@ try {
       branches: '{"branches":[{"title":"Next","jump_to":-1}]}',
       draft_item_id: await draft('slide.png', png)
     });
-    await client.callOperation('update_lesson_page', {
+    assert.equal(created.page.files_count, 1, 'the draft file is published to the page');
+    const updated = await client.callOperation('update_lesson_page', {
       course_id: courseId, module_id: lessonId, page_id: created.page.page_id,
       draft_item_id: await draft('chart.svg', '<svg xmlns="http://www.w3.org/2000/svg"/>')
     });
+    assert.equal(updated.page.files_count, 2, 'updating adds files and keeps existing ones');
+  });
+
+  await check('wiki pages publish draft files to the subwiki', async () => {
+    const wikiId = await step('create_module wiki', () => client.callOperation('create_module', {
+      course_id: courseId, section_number: 1, module_type: 'wiki', name: 'Smoke wiki', options: { first_page_title: 'Home' }
+    })).then((created) => created.module_id);
+    await step('create_wiki_page', async () => client.callOperation('create_wiki_page', {
+      course_id: courseId, module_id: wikiId, title: 'Diagram', content: '<p><img src="@@PLUGINFILE@@/wiki.png"></p>',
+      content_format: 'html', draft_item_id: await draft('wiki.png', png)
+    }));
+  });
+
+  await check('new modules publish intro draft files and intro formats', async () => {
+    await step('create_module page with intro files', async () => client.callOperation('create_module', {
+      course_id: courseId, section_number: 1, module_type: 'page', name: 'Intro files',
+      options: { intro: '*diagram*', intro_format: 'markdown', intro_draft_item_id: await draft('intro.png', png), content: '<p>Body</p>' }
+    }));
   });
 
   await check('glossary entries publish inline drafts', async () => {
