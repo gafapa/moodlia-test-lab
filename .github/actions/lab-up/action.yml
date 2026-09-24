@@ -8,8 +8,10 @@ inputs:
     description: core or moodlia
     default: core
   port:
-    description: Loopback port
-    default: '8080'
+    # Must differ from the container port 8080: with REVERSEPROXY=true Moodle rejects
+    # requests whose host and port match wwwroot as reverse-proxy abuse.
+    description: Loopback port (not 8080)
+    default: '18080'
   image-prefix:
     default: ghcr.io/gafapa/moodlia-lab
 outputs:
@@ -29,6 +31,7 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
+        if [ "${{ inputs.port }}" = 8080 ]; then echo "::error::port must not be 8080 (reverse-proxy check)"; exit 1; fi
         name="moodlia-lab-${{ inputs.version }}-${{ inputs.variant }}-${{ inputs.port }}"
         docker run -d --name "$name" --label moodlia-lab=true \
           -p "127.0.0.1:${{ inputs.port }}:8080" \

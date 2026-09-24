@@ -62,7 +62,7 @@ jobs:
       - name: Smoke-test the image
         run: |
           image="ghcr.io/${{ github.repository_owner }}/moodlia-lab:${{ matrix.site.version }}-${{ matrix.variant }}"
-          docker run -d --name smoke -p 127.0.0.1:8080:8080 -e SITE_URL=http://127.0.0.1:8080 -e DB_TYPE=sqlite3 -e MOODLE_DATABASE_TYPE=sqlite3 "$image"
+          docker run -d --name smoke -p 127.0.0.1:18080:8080 -e SITE_URL=http://127.0.0.1:18080 -e REVERSEPROXY=true -e DB_TYPE=sqlite3 -e MOODLE_DATABASE_TYPE=sqlite3 "$image"
           for _ in $(seq 1 60); do [ "$(docker inspect -f '{{.State.Health.Status}}' smoke)" = healthy ] && break; sleep 3; done
           echo "health: $(docker inspect -f '{{.State.Health.Status}}' smoke)"
           fixture="$(docker exec smoke php /opt/moodlia-lab/runtime.php "${{ matrix.variant }}" | tail -n 1)"
@@ -70,7 +70,7 @@ jobs:
           echo "::add-mask::$token"
           jq 'del(.token)' <<< "$fixture"
           info="$(curl -fsS -d "wstoken=$token&wsfunction=core_webservice_get_site_info&moodlewsrestformat=json" \
-            http://127.0.0.1:8080/webservice/rest/server.php)"
+            http://127.0.0.1:18080/webservice/rest/server.php)"
           if ! jq -e .release <<< "$info"; then
             jq '{exception, errorcode, message, debuginfo}' <<< "$info" || head -c 2000 <<< "$info"
             docker logs --tail 80 smoke
