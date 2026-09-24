@@ -211,6 +211,16 @@ try {
     fs.copyFileSync(reportPath, path.join(outputDirectory, path.basename(reportPath)));
     console.log(`Report: ${path.join(outputDirectory, path.basename(reportPath))}`);
   }
+  if ((run.status ?? 1) !== 0) {
+    // Keep plans, CLI output, and sync state for diagnosis. Site fixtures hold tokens and are
+    // named after their slot, not the run id, so they are never copied.
+    const evidence = path.join(outputDirectory, `${runId}-evidence`);
+    fs.mkdirSync(evidence, { recursive: true });
+    for (const name of fs.readdirSync(results).filter((entry) => entry.startsWith(`${runId}-`))) {
+      fs.copyFileSync(path.join(results, name), path.join(evidence, name));
+    }
+    console.log(`Failure evidence: ${evidence}`);
+  }
   exitCode = run.status ?? 1;
   if (options['plugin-smoke']) {
     // Plugin write features (groups, formats, embedded files, backup download) on the target MoodlIA site.
