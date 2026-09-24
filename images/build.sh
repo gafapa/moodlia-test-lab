@@ -28,7 +28,7 @@ cleanup() { docker rm -f "$container" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 
 # The build-time password is replaced by runtime.php on every start.
-docker run -d --name "$container" \
+docker run -d --name "$container" ${BUILD_MEMORY:+--memory "$BUILD_MEMORY"} \
   -e DB_TYPE=sqlite3 -e MOODLE_DATABASE_TYPE=sqlite3 \
   -e SITE_URL=http://127.0.0.1:8080 -e REVERSEPROXY=true -e AUTO_UPDATE_MOODLE=true \
   -e MOODLE_USERNAME=admin -e "MOODLE_PASSWORD=build-$(openssl rand -hex 16)" \
