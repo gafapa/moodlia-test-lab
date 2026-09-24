@@ -1,0 +1,49 @@
+name: MoodlIA lab site
+description: Start a disposable Moodle site from a golden lab image and expose its URL and a fresh token.
+inputs:
+  version:
+    description: Moodle branch, for example 4.5 or 5.3
+    required: true
+  variant:
+    description: core or moodlia
+    default: core
+  port:
+    description: Loopback port
+    default: '8080'
+  image-prefix:
+    default: ghcr.io/gafapa/moodlia-lab
+outputs:
+  url:
+    description: Site URL
+    value: ${{ steps.site.outputs.url }}
+  token:
+    description: Web service token (masked)
+    value: ${{ steps.site.outputs.token }}
+  container:
+    description: Container name, for cleanup
+    value: ${{ steps.site.outputs.container }}
+runs:
+  using: composite
+  steps:
+    - id: site
+      shell: bash
+      run: |
+        set -euo pipefail
+        name="moodlia-lab-${{ inputs.version }}-${{ inputs.variant }}-${{ inputs.port }}"
+        docker run -d --name "$name" --label moodlia-lab=true \
+          -p "127.0.0.1:${{ inputs.port }}:8080" \
+          -e "SITE_URL=http://127.0.0.1:${{ inputs.port }}" \
+          -e DB_TYPE=sqlite3 -e MOODLE_DATABASE_TYPE=sqlite3 -e REVERSEPROXY=true \
+          "${{ inputs.image-prefix }}:${{ inputs.version }}-${{ inputs.variant }}" >/dev/null
+        for _ in $(seq 1 60); do
+          [ "$(docker inspect -f '{{.State.Health.Status}}' "$name")" = healthy ] && break
+          sleep 3
+        done
+        fixture="$(docker exec "$name" php /opt/moodlia-lab/runtime.php "${{ inputs.variant }}")"
+        token="$(jq -r .token <<< "$fixture")"
+        echo "::add-mask::$token"
+        {
+          echo "url=http://127.0.0.1:${{ inputs.port }}"
+          echo "token=$token"
+          echo "container=$name"
+        } >> "$GITHUB_OUTPUT"

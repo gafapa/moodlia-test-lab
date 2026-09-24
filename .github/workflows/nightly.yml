@@ -1,0 +1,30 @@
+name: Nightly qualification matrix
+
+on:
+  schedule:
+    - cron: '41 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pairs:
+    strategy:
+      fail-fast: false
+      matrix:
+        source: ['4.5', '5.0', '5.1', '5.2', '5.3']
+        target: ['4.5', '5.0', '5.1', '5.2', '5.3']
+    uses: ./.github/workflows/qualify.yml
+    with:
+      source: ${{ matrix.source }}
+      target: ${{ matrix.target }}
+      package: latest
+
+  postgresql:
+    uses: ./.github/workflows/qualify.yml
+    with:
+      source: '4.5'
+      target: '5.3'
+      package: latest
+      database: pgsql

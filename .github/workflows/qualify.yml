@@ -1,0 +1,93 @@
+name: Live qualification
+
+on:
+  workflow_call:
+    inputs:
+      source:
+        type: string
+        default: '4.5'
+      target:
+        type: string
+        default: '5.3'
+      package:
+        description: moodlia-sync version, or the name of an artifact containing moodlia-sync-*.tgz
+        type: string
+        required: true
+      sync_ref:
+        description: moodlia-sync ref that provides the qualification runner
+        type: string
+        default: main
+      database:
+        description: sqlite3 (golden images) or pgsql (fresh installs)
+        type: string
+        default: sqlite3
+  workflow_dispatch:
+    inputs:
+      source:
+        default: '4.5'
+      target:
+        default: '5.3'
+      package:
+        required: true
+      sync_ref:
+        default: main
+      database:
+        default: sqlite3
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: gafapa/moodlia-test-lab
+          path: lab
+      - uses: actions/checkout@v4
+        with:
+          repository: gafapa/moodlia-sync
+          ref: ${{ inputs.sync_ref }}
+          path: sync
+      - uses: actions/checkout@v4
+        if: inputs.database == 'pgsql'
+        with:
+          repository: gafapa/moodle-local_moodlia
+          path: plugin
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Resolve the package under test
+        id: package
+        shell: bash
+        run: |
+          if [[ "${{ inputs.package }}" =~ ^([0-9]|latest$|next$) ]]; then
+            echo "spec=${{ inputs.package }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "artifact=${{ inputs.package }}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Download the package artifact
+        if: steps.package.outputs.artifact != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.artifact }}
+          path: package
+      - name: Qualify ${{ inputs.source }} to ${{ inputs.target }}
+        shell: bash
+        run: |
+          spec="${{ steps.package.outputs.spec }}"
+          if [[ -z "$spec" ]]; then spec="$(ls "$GITHUB_WORKSPACE"/package/moodlia-sync-*.tgz | head -n 1)"; fi
+          node lab/qualify/qualify-live.mjs \
+            --source "${{ inputs.source }}" --target "${{ inputs.target }}" \
+            --package "$spec" --runner sync/tools/live-qualification/runner \
+            --run-id "gha-${{ github.run_id }}-${{ github.run_attempt }}" --output reports \
+            --database "${{ inputs.database }}" --plugin plugin
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qualification-${{ inputs.source }}-${{ inputs.target }}-${{ inputs.database }}
+          path: reports
+          retention-days: 30
+          if-no-files-found: ignore

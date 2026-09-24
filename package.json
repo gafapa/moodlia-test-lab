@@ -1,0 +1,15 @@
+{
+  "name": "moodlia-test-lab",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Disposable Moodle sites and live qualification for MoodlIA packages.",
+  "type": "module",
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "qualify:live": "node qualify/qualify-live.mjs",
+    "check": "node --check qualify/qualify-live.mjs && node --test tests/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}

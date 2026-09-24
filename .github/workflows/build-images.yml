@@ -1,0 +1,68 @@
+name: Build golden images
+
+on:
+  schedule:
+    - cron: '23 2 * * 1'
+  workflow_dispatch:
+    inputs:
+      plugin_ref:
+        description: moodle-local_moodlia ref installed in the moodlia variant
+        default: main
+  repository_dispatch:
+    types: [plugin-released]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: build-images
+  cancel-in-progress: false
+
+jobs:
+  versions:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: matrix
+        run: echo "matrix=$(jq -c '[to_entries[] | {version: .key, tag: .value}]' images/versions.json)" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: versions
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        site: ${{ fromJSON(needs.versions.outputs.matrix) }}
+        variant: [core, moodlia]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out the MoodlIA plugin
+        if: matrix.variant == 'moodlia'
+        uses: actions/checkout@v4
+        with:
+          repository: gafapa/moodle-local_moodlia
+          ref: ${{ github.event.inputs.plugin_ref || github.event.client_payload.ref || 'main' }}
+          path: plugin
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build ${{ matrix.site.version }}-${{ matrix.variant }}
+        run: bash images/build.sh "${{ matrix.site.tag }}" "${{ matrix.variant }}" "ghcr.io/${{ github.repository_owner }}/moodlia-lab:${{ matrix.site.version }}-${{ matrix.variant }}" plugin
+      - name: Smoke-test the image
+        run: |
+          image="ghcr.io/${{ github.repository_owner }}/moodlia-lab:${{ matrix.site.version }}-${{ matrix.variant }}"
+          docker run -d --name smoke -p 127.0.0.1:8080:8080 -e SITE_URL=http://127.0.0.1:8080 -e DB_TYPE=sqlite3 -e MOODLE_DATABASE_TYPE=sqlite3 "$image"
+          for _ in $(seq 1 60); do [ "$(docker inspect -f '{{.State.Health.Status}}' smoke)" = healthy ] && break; sleep 3; done
+          fixture="$(docker exec smoke php /opt/moodlia-lab/runtime.php "${{ matrix.variant }}")"
+          token="$(jq -r .token <<< "$fixture")"
+          echo "::add-mask::$token"
+          curl -fsS -d "wstoken=$token&wsfunction=core_webservice_get_site_info&moodlewsrestformat=json" \
+            http://127.0.0.1:8080/webservice/rest/server.php | jq -e .release
+          docker rm -f smoke
+      - name: Push
+        run: docker push "ghcr.io/${{ github.repository_owner }}/moodlia-lab:${{ matrix.site.version }}-${{ matrix.variant }}"
