@@ -5,7 +5,7 @@
 // usage: node qualify/qualify-live.mjs --source 4.5 --target 5.3 --package <moodlia-sync tgz|version>
 //          --runner <moodlia-sync/tools/live-qualification/runner> [--image-prefix ghcr.io/gafapa/moodlia-lab]
 //          [--run-id <id>] [--memory 768m] [--cpus 0.75] [--keep] [--output results]
-//          [--database pgsql --plugin <moodle-local_moodlia checkout>]
+//          [--database pgsql --plugin <moodle-local_moodlia checkout>] [--large-backup [size-mib]]
 //
 // The default uses SQLite golden images. --database pgsql installs each site
 // from the base image against its own PostgreSQL container instead, because
@@ -207,6 +207,19 @@ try {
     console.log(`Report: ${path.join(outputDirectory, path.basename(reportPath))}`);
   }
   exitCode = run.status ?? 1;
+  if (options['large-backup']) {
+    // Streams a >100 MiB backup through upload, backup, download, and restore on the source MoodlIA site.
+    fs.copyFileSync(path.join(labRoot, 'qualify', 'large-backup.mjs'), path.join(runner, 'large-backup.mjs'));
+    const largeReport = path.join(outputDirectory, `${runId}-large-backup-report.json`);
+    const large = spawnSync(process.execPath, [
+      path.join(runner, 'large-backup.mjs'),
+      path.join(results, 'm45plugin.json'),
+      profiles.profiles.m45plugin.url,
+      largeReport,
+      options['large-backup'] === true ? '120' : String(options['large-backup'])
+    ], { cwd: runner, stdio: 'inherit' });
+    if ((large.status ?? 1) !== 0) exitCode = exitCode || 1;
+  }
 } catch (error) {
   console.error(error.message);
   exitCode = 1;

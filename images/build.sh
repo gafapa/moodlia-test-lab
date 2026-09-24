@@ -78,7 +78,7 @@ docker exec -u root "$container" rm -f /tmp/moodlia-lab-fixture.php
 docker stop "$container" >/dev/null
 docker commit \
   --change 'LABEL moodlia-lab=true' \
-  --change "LABEL org.opencontainers.image.description=MoodlIA lab ${moodle_tag} ${variant}" \
+  --change "LABEL org.opencontainers.image.description=\"MoodlIA lab ${moodle_tag} ${variant}\"" \
   --change 'LABEL org.opencontainers.image.source=https://github.com/gafapa/moodlia-test-lab' \
   "$container" "$image" >/dev/null
 echo "Built $image"

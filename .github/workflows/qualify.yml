@@ -21,6 +21,10 @@ on:
         description: sqlite3 (golden images) or pgsql (fresh installs)
         type: string
         default: sqlite3
+      large_backup:
+        description: Also stream a >100 MiB backup through upload, download, and restore
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       source:
@@ -83,7 +87,8 @@ jobs:
             --source "${{ inputs.source }}" --target "${{ inputs.target }}" \
             --package "$spec" --runner sync/tools/live-qualification/runner \
             --run-id "gha-${{ github.run_id }}-${{ github.run_attempt }}" --output reports \
-            --database "${{ inputs.database }}" --plugin plugin
+            --database "${{ inputs.database }}" --plugin plugin \
+            ${{ inputs.large_backup && '--large-backup' || '' }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

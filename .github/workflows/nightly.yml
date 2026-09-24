@@ -28,3 +28,4 @@ jobs:
       target: '5.3'
       package: latest
       database: pgsql
+      large_backup: true
