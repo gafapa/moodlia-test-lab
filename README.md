@@ -44,6 +44,11 @@ the report to `results/`, and removes every container, even on failure.
 each site from the base image against its own PostgreSQL instead of SQLite;
 it needs `--plugin <moodle-local_moodlia checkout>`.
 
+`--plugin-smoke` then exercises plugin write features on the target MoodlIA
+site (group visibility and keys, text formats, embedded files for forum,
+glossary, and Lesson, and a backup download); `--large-backup` streams a
+backup larger than 100 MiB through upload, download, and restore.
+
 Each container is limited to 768 MiB and 0.75 CPU (`--memory`, `--cpus`) and
 labelled `moodlia-lab`, and PHP accepts uploads up to 1 GiB for large-backup
 scenarios.

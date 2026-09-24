@@ -25,6 +25,10 @@ on:
         description: Also stream a >100 MiB backup through upload, download, and restore
         type: boolean
         default: false
+      plugin_smoke:
+        description: Also exercise plugin write features on the target MoodlIA site
+        type: boolean
+        default: true
   workflow_dispatch:
     inputs:
       source:
@@ -88,7 +92,7 @@ jobs:
             --package "$spec" --runner sync/tools/live-qualification/runner \
             --run-id "gha-${{ github.run_id }}-${{ github.run_attempt }}" --output reports \
             --database "${{ inputs.database }}" --plugin plugin \
-            ${{ inputs.large_backup && '--large-backup' || '' }}
+            ${{ inputs.large_backup && '--large-backup' || '' }} ${{ inputs.plugin_smoke && '--plugin-smoke' || '' }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

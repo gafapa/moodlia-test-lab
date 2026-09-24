@@ -5,7 +5,7 @@
 // usage: node qualify/qualify-live.mjs --source 4.5 --target 5.3 --package <moodlia-sync tgz|version>
 //          --runner <moodlia-sync/tools/live-qualification/runner> [--image-prefix ghcr.io/gafapa/moodlia-lab]
 //          [--run-id <id>] [--memory 768m] [--cpus 0.75] [--keep] [--output results]
-//          [--database pgsql --plugin <moodle-local_moodlia checkout>] [--large-backup [size-mib]]
+//          [--database pgsql --plugin <moodle-local_moodlia checkout>] [--large-backup [size-mib]] [--plugin-smoke]
 //
 // The default uses SQLite golden images. --database pgsql installs each site
 // from the base image against its own PostgreSQL container instead, because
@@ -46,6 +46,9 @@ for (const required of ['source', 'target', 'package', 'runner']) {
 const imagePrefix = options['image-prefix'] ?? 'ghcr.io/gafapa/moodlia-lab';
 const database = options.database ?? 'sqlite3';
 if (!['sqlite3', 'pgsql'].includes(database)) throw new Error('--database must be sqlite3 or pgsql.');
+if (options['large-backup'] && database !== 'pgsql') {
+  throw new Error('--large-backup needs --database pgsql: Moodle backups do not run on SQLite.');
+}
 if (database === 'pgsql' && (!options.plugin || !fs.existsSync(path.join(String(options.plugin), 'version.php')))) {
   throw new Error('--database pgsql needs --plugin with a moodle-local_moodlia checkout.');
 }
@@ -207,6 +210,16 @@ try {
     console.log(`Report: ${path.join(outputDirectory, path.basename(reportPath))}`);
   }
   exitCode = run.status ?? 1;
+  if (options['plugin-smoke']) {
+    // Plugin write features (groups, formats, embedded files, backup download) on the target MoodlIA site.
+    fs.copyFileSync(path.join(labRoot, 'qualify', 'plugin-smoke.mjs'), path.join(runner, 'plugin-smoke.mjs'));
+    const smoke = spawnSync(process.execPath, [
+      path.join(runner, 'plugin-smoke.mjs'),
+      path.join(results, 'm53plugin.json'),
+      profiles.profiles.m53plugin.url
+    ], { cwd: runner, stdio: 'inherit', env: { ...process.env, LAB_DATABASE: database } });
+    if ((smoke.status ?? 1) !== 0) exitCode = exitCode || 1;
+  }
   if (options['large-backup']) {
     // Streams a >100 MiB backup through upload, backup, download, and restore on the source MoodlIA site.
     fs.copyFileSync(path.join(labRoot, 'qualify', 'large-backup.mjs'), path.join(runner, 'large-backup.mjs'));
