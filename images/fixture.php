@@ -132,13 +132,16 @@ function lab_page(stdClass $course): void {
 }
 
 lab_core_service();
-$source = lab_course('LAB-SOURCE', 'Lab source course', '<p>Cross-version summary.</p>');
+// Shortnames are unique per site, and synchronization copies them: prefix them with the site
+// (for example M405CORE-SOURCE) so a source course never collides with a course on the target.
+$site = 'M' . $CFG->branch . strtoupper($provider);
+$source = lab_course("{$site}-SOURCE", 'Lab source course', '<p>Cross-version summary.</p>');
 lab_groups($source);
 if ($provider === 'moodlia') {
     lab_page($source);
 }
-lab_course('LAB-TARGET-A', 'Lab target A', '<p>Target A placeholder.</p>');
-lab_course('LAB-TARGET-B', 'Lab target B', '<p>Target B placeholder.</p>');
+lab_course("{$site}-TARGET-A", 'Lab target A', '<p>Target A placeholder.</p>');
+lab_course("{$site}-TARGET-B", 'Lab target B', '<p>Target B placeholder.</p>');
 
 echo json_encode([
     'provider' => $provider,

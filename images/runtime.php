@@ -36,7 +36,12 @@ $token = class_exists('core_external\\util') && method_exists('core_external\\ut
     ? \core_external\util::generate_token(...$arguments)
     : external_generate_token(...$arguments);
 
-$courses = $DB->get_records_menu('course', null, '', 'shortname, id');
+// fixture.php names its courses after the site; a synchronized target may hold other sites' names too.
+$site = 'M' . $CFG->branch . strtoupper($provider);
+$courses = [];
+foreach (['SOURCE', 'TARGET-A', 'TARGET-B'] as $suffix) {
+    $courses['LAB-' . $suffix] = $DB->get_field('course', 'id', ['shortname' => "{$site}-{$suffix}"]);
+}
 echo json_encode([
     'provider' => $provider,
     'token' => $token,
