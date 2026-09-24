@@ -184,7 +184,9 @@ try {
     for (const site of sites) await installFixture(site);
   }
   for (const site of sites) {
-    const fixture = JSON.parse(docker(['exec', site.container, 'php', '/opt/moodlia-lab/runtime.php', site.variant]));
+    // PHP notices may precede the fixture; runtime.php prints the JSON last.
+    const output = docker(['exec', site.container, 'php', '/opt/moodlia-lab/runtime.php', site.variant]);
+    const fixture = JSON.parse(output.split(/\r?\n/).at(-1));
     fs.writeFileSync(path.join(results, `${site.slot}.json`), `${JSON.stringify(fixture, null, 2)}\n`, { mode: 0o600 });
   }
   fs.writeFileSync(path.join(runner, 'profiles.json'), `${JSON.stringify(profiles, null, 2)}\n`);

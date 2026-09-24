@@ -39,7 +39,7 @@ runs:
           [ "$(docker inspect -f '{{.State.Health.Status}}' "$name")" = healthy ] && break
           sleep 3
         done
-        fixture="$(docker exec "$name" php /opt/moodlia-lab/runtime.php "${{ inputs.variant }}")"
+        fixture="$(docker exec "$name" php /opt/moodlia-lab/runtime.php "${{ inputs.variant }}" | tail -n 1)"
         token="$(jq -r .token <<< "$fixture")"
         echo "::add-mask::$token"
         {
