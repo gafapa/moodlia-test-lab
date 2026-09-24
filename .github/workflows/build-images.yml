@@ -69,9 +69,11 @@ jobs:
           token="$(jq -r .token <<< "$fixture")"
           echo "::add-mask::$token"
           jq 'del(.token)' <<< "$fixture"
-          info="$(curl -fsS -d "wstoken=$token&wsfunction=core_webservice_get_site_info&moodlewsrestformat=json" \
+          # Each variant's token only reaches its own service: every Core function, or local_moodlia.
+          if [ "${{ matrix.variant }}" = core ]; then function=core_webservice_get_site_info; else function=local_moodlia_get_moodlia_status; fi
+          info="$(curl -fsS -d "wstoken=$token&wsfunction=$function&moodlewsrestformat=json" \
             http://127.0.0.1:18080/webservice/rest/server.php)"
-          if ! jq -e .release <<< "$info"; then
+          if ! jq -e 'type == "object" and (has("exception") | not)' <<< "$info" >/dev/null; then
             jq '{exception, errorcode, message, debuginfo}' <<< "$info" || head -c 2000 <<< "$info"
             docker logs --tail 80 smoke
             exit 1
