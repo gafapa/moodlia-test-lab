@@ -70,11 +70,16 @@ jobs:
       - name: Resolve the package under test
         id: package
         shell: bash
+        env:
+          PACKAGE_INPUT: ${{ inputs.package }}
         run: |
-          if [[ "${{ inputs.package }}" =~ ^([0-9]|latest$|next$) ]]; then
-            echo "spec=${{ inputs.package }}" >> "$GITHUB_OUTPUT"
+          if [[ "$PACKAGE_INPUT" =~ ^[0-9][0-9A-Za-z.+-]*$ || "$PACKAGE_INPUT" == latest || "$PACKAGE_INPUT" == next ]]; then
+            echo "spec=$PACKAGE_INPUT" >> "$GITHUB_OUTPUT"
+          elif [[ "$PACKAGE_INPUT" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+            echo "artifact=$PACKAGE_INPUT" >> "$GITHUB_OUTPUT"
           else
-            echo "artifact=${{ inputs.package }}" >> "$GITHUB_OUTPUT"
+            echo 'Invalid package version or artifact name' >&2
+            exit 1
           fi
       - name: Download the package artifact
         if: steps.package.outputs.artifact != ''
@@ -84,14 +89,19 @@ jobs:
           path: package
       - name: Qualify ${{ inputs.source }} to ${{ inputs.target }}
         shell: bash
+        env:
+          SOURCE_BRANCH: ${{ inputs.source }}
+          TARGET_BRANCH: ${{ inputs.target }}
+          DATABASE_TYPE: ${{ inputs.database }}
+          PACKAGE_SPEC: ${{ steps.package.outputs.spec }}
         run: |
-          spec="${{ steps.package.outputs.spec }}"
+          spec="$PACKAGE_SPEC"
           if [[ -z "$spec" ]]; then spec="$(ls "$GITHUB_WORKSPACE"/package/moodlia-sync-*.tgz | head -n 1)"; fi
           node lab/qualify/qualify-live.mjs \
-            --source "${{ inputs.source }}" --target "${{ inputs.target }}" \
+            --source "$SOURCE_BRANCH" --target "$TARGET_BRANCH" \
             --package "$spec" --runner sync/tools/live-qualification/runner \
             --run-id "gha-${{ github.run_id }}-${{ github.run_attempt }}" --output reports \
-            --database "${{ inputs.database }}" --plugin plugin \
+            --database "$DATABASE_TYPE" --plugin plugin \
             ${{ inputs.large_backup && '--large-backup' || '' }} ${{ inputs.plugin_smoke && '--plugin-smoke' || '' }}
       - uses: actions/upload-artifact@v4
         if: always()

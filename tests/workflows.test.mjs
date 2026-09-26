@@ -29,6 +29,17 @@ test('the nightly matrix covers every source and target pair and PostgreSQL', ()
   assert.match(nightly, /database: pgsql/);
 });
 
+test('pull request checks need no credentials and qualification inputs stay out of shell source', () => {
+  const ci = read('.github/workflows/ci.yml');
+  const qualification = read('.github/workflows/qualify.yml');
+  assert.match(ci, /pull_request:/);
+  assert.match(ci, /npm run check/);
+  assert.doesNotMatch(ci, /secrets\./);
+  assert.match(qualification, /PACKAGE_INPUT: \$\{\{ inputs\.package \}\}/);
+  assert.match(qualification, /PACKAGE_SPEC: \$\{\{ steps\.package\.outputs\.spec \}\}/);
+  assert.doesNotMatch(qualification, /\"\$\{\{ inputs\.(?:package|source|target|database) \}\}\"/);
+});
+
 test('qualify-live always cleans up and bounds container resources', () => {
   const source = read('qualify/qualify-live.mjs');
   assert.match(source, /\} finally \{\n  cleanup\(\);\n\}/);
