@@ -69,8 +69,9 @@ scenarios.
 
 - `qualify.yml`: reusable (`workflow_call`) and manual qualification of one
   source/target pair.
-- `nightly.yml`: every source/target pair of the five branches, plus one
-  PostgreSQL run.
+- `ci.yml`: fast checks on pushes and pull requests without credentials.
+- `nightly.yml`: weekly qualification of every source/target pair of the five
+  branches, plus one PostgreSQL run; it can also be run manually.
 - `.github/actions/lab-up`: starts one site and outputs its URL and a masked
   token, for other repositories' recording or integration jobs. Its `port`
   input defaults to 18080 and must not be 8080.

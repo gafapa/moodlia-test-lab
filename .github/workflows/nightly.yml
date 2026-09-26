@@ -1,8 +1,8 @@
-name: Nightly qualification matrix
+name: Weekly qualification matrix
 
 on:
   schedule:
-    - cron: '41 3 * * *'
+    - cron: '41 3 * * 1'
   workflow_dispatch:
 
 permissions:
