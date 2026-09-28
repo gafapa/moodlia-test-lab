@@ -26,6 +26,12 @@ if ($prefix !== '' && !preg_match('/^[A-Z]{1,8}$/', $prefix)) {
 }
 
 global $DB;
+// SQLite accepts one writer at a time, and the standard log store inserts a row on every web
+// service call, so concurrent read-only calls failed with dml_write_exception. Lab sites on
+// SQLite keep no logs; PostgreSQL sites keep them.
+if ($DB->get_dbfamily() === 'sqlite') {
+    set_config('enabled_stores', '', 'tool_log');
+}
 $admin = get_admin();
 \core\session\manager::set_user($admin);
 update_internal_user_password($admin, bin2hex(random_bytes(24)));

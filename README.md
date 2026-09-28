@@ -63,7 +63,9 @@ Moodle 5.3) instead of SQLite; it needs `--plugin <moodle-local_moodlia checkout
 Sites run without the image's internal Moodle cron (`RUN_CRON_TASKS=false`):
 SQLite accepts one writer at a time, so cron writes made concurrent web service
 calls fail with `dml_write_exception`, and cron tasks could change a course
-between plan and apply. Each site uses this checkout's `runtime.php`, with the
+between plan and apply. For the same reason `runtime.php` disables the log
+stores on SQLite sites, because the standard log store writes a row on every web
+service call. Each site uses this checkout's `runtime.php`, with the
 prefix `SRC` on source sites and `TGT` on target sites.
 
 `--plugin-smoke` then exercises plugin write features on the target MoodlIA
@@ -72,8 +74,8 @@ glossary, and Lesson, and a backup download); `--large-backup` streams a
 backup larger than 100 MiB through upload, download, and restore.
 
 Each container is limited to 768 MiB and 0.75 CPU (`--memory`, `--cpus`) and
-labelled `moodlia-lab`, and PHP accepts uploads up to 1 GiB for large-backup
-scenarios.
+labelled `moodlia-lab`, and PHP and nginx accept uploads up to 1 GiB for
+large-backup scenarios.
 
 ## GitHub Actions
 

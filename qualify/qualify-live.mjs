@@ -170,8 +170,8 @@ try {
       // The image runs Moodle cron in a loop. Its writes lock SQLite and its tasks can change a
       // course between plan and apply, so qualification runs without it.
       '-e', 'RUN_CRON_TASKS=false',
-      // Large-backup scenarios need more than the image's 50 MiB PHP limits.
-      '-e', 'post_max_size=1G', '-e', 'upload_max_filesize=1G',
+      // Large-backup scenarios need more than the image's 50 MiB PHP and nginx limits.
+      '-e', 'post_max_size=1G', '-e', 'upload_max_filesize=1G', '-e', 'client_max_body_size=1G',
       image
     ]);
     containers.push(name);
