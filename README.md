@@ -66,8 +66,9 @@ calls fail with `dml_write_exception`, and cron tasks could change a course
 between plan and apply. For the same reason `runtime.php` disables the log
 stores on SQLite sites, because the standard log store writes a row on every web
 service call, and switches the SQLite database to WAL, so reads proceed while
-another request writes. `runtime.php` also turns on developer debugging without
-display, so web service errors carry Moodle's `debuginfo`. Each site uses this checkout's `runtime.php`, with the
+another request writes. Because cron does not run, `runtime.php` also creates any
+missing contexts at start, as cron would; otherwise parallel reads race to
+create them. Each site uses this checkout's `runtime.php`, with the
 prefix `SRC` on source sites and `TGT` on target sites.
 
 `--plugin-smoke` then exercises plugin write features on the target MoodlIA
