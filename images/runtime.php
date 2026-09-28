@@ -28,8 +28,10 @@ if ($prefix !== '' && !preg_match('/^[A-Z]{1,8}$/', $prefix)) {
 global $DB;
 // Moodle creates missing contexts from cron, which lab sites do not run. A module without a
 // context made parallel read-only calls race to insert it (UNIQUE constraint on mdl_context).
-\context_helper::create_instances();
-\context_helper::build_all_paths(false);
+// context_helper::create_instances() fails on SQLite from Moodle 5.0, so create them one by one.
+foreach ($DB->get_fieldset_select('course_modules', 'id', '1 = 1') as $cmid) {
+    \context_module::instance((int) $cmid);
+}
 // SQLite accepts one writer at a time, and the standard log store inserts a row on every web
 // service call, so concurrent read-only calls failed with dml_write_exception. Lab sites on
 // SQLite keep no logs; PostgreSQL sites keep them.
