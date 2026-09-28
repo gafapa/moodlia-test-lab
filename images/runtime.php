@@ -26,6 +26,10 @@ if ($prefix !== '' && !preg_match('/^[A-Z]{1,8}$/', $prefix)) {
 }
 
 global $DB;
+// Developer debugging adds Moodle's debuginfo (for example the failing SQL) to web service
+// errors, so qualification evidence names the cause. It is never displayed in responses.
+set_config('debug', DEBUG_DEVELOPER);
+set_config('debugdisplay', 0);
 // SQLite accepts one writer at a time, and the standard log store inserts a row on every web
 // service call, so concurrent read-only calls failed with dml_write_exception. Lab sites on
 // SQLite keep no logs; PostgreSQL sites keep them.
