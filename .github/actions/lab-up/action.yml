@@ -36,7 +36,7 @@ runs:
         docker run -d --name "$name" --label moodlia-lab=true \
           -p "127.0.0.1:${{ inputs.port }}:8080" \
           -e "SITE_URL=http://127.0.0.1:${{ inputs.port }}" \
-          -e DB_TYPE=sqlite3 -e MOODLE_DATABASE_TYPE=sqlite3 -e REVERSEPROXY=true \
+          -e DB_TYPE=sqlite3 -e MOODLE_DATABASE_TYPE=sqlite3 -e REVERSEPROXY=true -e RUN_CRON_TASKS=false \
           "${{ inputs.image-prefix }}:${{ inputs.version }}-${{ inputs.variant }}" >/dev/null
         for _ in $(seq 1 60); do
           [ "$(docker inspect -f '{{.State.Health.Status}}' "$name")" = healthy ] && break

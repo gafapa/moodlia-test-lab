@@ -10,6 +10,7 @@ require('/var/www/html/config.php');
 require_once($CFG->libdir . '/externallib.php');
 require_once($CFG->dirroot . '/course/lib.php');
 require_once($CFG->dirroot . '/group/lib.php');
+require_once($CFG->libdir . '/gradelib.php');
 
 $provider = $argv[1] ?? '';
 if (!in_array($provider, ['core', 'moodlia'], true)) {
@@ -72,6 +73,10 @@ function lab_course(string $shortname, string $fullname, string $summary): stdCl
         'numsections' => 2,
     ]);
     course_create_sections_if_missing($course, 1);
+    // Moodle creates the course grade category and item on first use. Create them now, so
+    // read-only web service calls never race to insert them (duplicates or SQLite locks).
+    grade_category::fetch_course_category((int) $course->id);
+    grade_item::fetch_course_item((int) $course->id);
     return $DB->get_record('course', ['id' => $course->id], '*', MUST_EXIST);
 }
 

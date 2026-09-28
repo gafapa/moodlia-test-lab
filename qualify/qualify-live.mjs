@@ -115,7 +115,8 @@ async function prepareFreshSite(site) {
   docker([
     'run', '-d', '--name', databaseName, '--network', network, '--label', 'moodlia-lab=true',
     '--memory', '384m', '-e', 'POSTGRES_USER=moodle', '-e', `POSTGRES_PASSWORD=${password}`, '-e', 'POSTGRES_DB=moodle',
-    'postgres:16'
+    // Moodle 5.3 requires PostgreSQL 17; 4.5 to 5.2 accept it too.
+    'postgres:17'
   ]);
   containers.push(databaseName);
   return [
@@ -166,6 +167,9 @@ try {
       '-e', `SITE_URL=http://127.0.0.1:${site.port}`,
       ...databaseArguments,
       '-e', 'REVERSEPROXY=true', '-e', 'AUTO_UPDATE_MOODLE=true',
+      // The image runs Moodle cron in a loop. Its writes lock SQLite and its tasks can change a
+      // course between plan and apply, so qualification runs without it.
+      '-e', 'RUN_CRON_TASKS=false',
       // Large-backup scenarios need more than the image's 50 MiB PHP limits.
       '-e', 'post_max_size=1G', '-e', 'upload_max_filesize=1G',
       image
@@ -185,7 +189,12 @@ try {
   }
   for (const site of sites) {
     // PHP notices may precede the fixture; runtime.php prints the JSON last.
-    const output = docker(['exec', site.container, 'php', '/opt/moodlia-lab/runtime.php', site.variant]);
+    // Use this checkout's runtime.php, not the copy baked into the image when it was built.
+    docker(['exec', '-u', 'root', site.container, 'mkdir', '-p', '/opt/moodlia-lab']);
+    docker(['cp', path.join(labRoot, 'images', 'runtime.php'), `${site.container}:/opt/moodlia-lab/runtime.php`]);
+    // Same-version pairs start both sides from one image: the role prefix keeps their shortnames apart.
+    const prefix = site.slot.startsWith('m45') ? 'SRC' : 'TGT';
+    const output = docker(['exec', site.container, 'php', '/opt/moodlia-lab/runtime.php', site.variant, prefix]);
     const fixture = JSON.parse(output.split(/\r?\n/).at(-1));
     fs.writeFileSync(path.join(results, `${site.slot}.json`), `${JSON.stringify(fixture, null, 2)}\n`, { mode: 0o600 });
   }

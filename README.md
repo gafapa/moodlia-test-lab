@@ -17,10 +17,14 @@ and a fixture: a source course with a Unicode group and grouping, two target
 courses, and on `moodlia` a Page with nested Unicode files. Course shortnames
 carry the site (`M405CORE-SOURCE`, `M503MOODLIA-TARGET-A`), because
 synchronization copies the source shortname and shortnames are unique per site.
+Each course also has its course grade category and grade item, which Moodle
+otherwise creates on first use, so read-only web service calls never write.
 Images contain no secrets: when a container starts,
-`php /opt/moodlia-lab/runtime.php <variant>` sets a random administrator
+`php /opt/moodlia-lab/runtime.php <variant> [prefix]` sets a random administrator
 password and prints the connection fixture (a fresh token and the course ids)
-as JSON on its last line.
+as JSON on its last line. An optional uppercase prefix renames the fixture
+courses (`SRC-M405CORE-SOURCE`), so two sites started from the same image never
+share a shortname.
 
 Images run Moodle in reverse-proxy mode with `SITE_URL` set to the host URL.
 Publish them on a host port other than the container port 8080, for example
@@ -53,8 +57,14 @@ run fails it also keeps the plans, CLI output, and synchronization state in
 `results/<run-id>-evidence/` (never the tokens); if apply reports that a course
 changed after planning, the evidence includes both courses exported twice.
 `--package` accepts a tarball or an npm version. `--database pgsql` installs
-each site from the base image against its own PostgreSQL instead of SQLite;
-it needs `--plugin <moodle-local_moodlia checkout>`.
+each site from the base image against its own PostgreSQL 17 (the minimum for
+Moodle 5.3) instead of SQLite; it needs `--plugin <moodle-local_moodlia checkout>`.
+
+Sites run without the image's internal Moodle cron (`RUN_CRON_TASKS=false`):
+SQLite accepts one writer at a time, so cron writes made concurrent web service
+calls fail with `dml_write_exception`, and cron tasks could change a course
+between plan and apply. Each site uses this checkout's `runtime.php`, with the
+prefix `SRC` on source sites and `TGT` on target sites.
 
 `--plugin-smoke` then exercises plugin write features on the target MoodlIA
 site (group visibility and keys, text formats, embedded files for forum,
@@ -74,7 +84,7 @@ scenarios.
   branches, plus one PostgreSQL run; it can also be run manually.
 - `.github/actions/lab-up`: starts one site and outputs its URL and a masked
   token, for other repositories' recording or integration jobs. Its `port`
-  input defaults to 18080 and must not be 8080.
+  input defaults to 18080 and must not be 8080. The site runs without cron.
 
 Actions minutes are free for public repositories on standard runners.
 

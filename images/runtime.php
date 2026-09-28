@@ -3,15 +3,25 @@
 // and issues a web service token, so golden images never contain secrets.
 // Prints the connection fixture as JSON. Output must be stored with mode 0600.
 //
-// Usage: php runtime.php <core|moodlia>
+// Usage: php runtime.php <core|moodlia> [role prefix]
+//
+// A role prefix (for example SRC or TGT) renames the fixture courses to
+// <prefix>-<site>-<suffix>, so two sites started from the same image never share
+// a shortname when one synchronizes into the other.
 
 define('CLI_SCRIPT', true);
 require('/var/www/html/config.php');
 require_once($CFG->libdir . '/externallib.php');
+require_once($CFG->libdir . '/gradelib.php');
 
 $provider = $argv[1] ?? '';
 if (!in_array($provider, ['core', 'moodlia'], true)) {
-    fwrite(STDERR, "Usage: runtime.php <core|moodlia>\n");
+    fwrite(STDERR, "Usage: runtime.php <core|moodlia> [role prefix]\n");
+    exit(2);
+}
+$prefix = $argv[2] ?? '';
+if ($prefix !== '' && !preg_match('/^[A-Z]{1,8}$/', $prefix)) {
+    fwrite(STDERR, "The role prefix must be 1 to 8 uppercase letters.\n");
     exit(2);
 }
 
@@ -39,8 +49,20 @@ $token = class_exists('core_external\\util') && method_exists('core_external\\ut
 // fixture.php names its courses after the site; a synchronized target may hold other sites' names too.
 $site = 'M' . $CFG->branch . strtoupper($provider);
 $courses = [];
+$name = $prefix === '' ? $site : "{$prefix}-{$site}";
 foreach (['SOURCE', 'TARGET-A', 'TARGET-B'] as $suffix) {
-    $courses['LAB-' . $suffix] = $DB->get_field('course', 'id', ['shortname' => "{$site}-{$suffix}"]);
+    $id = $DB->get_field('course', 'id', ['shortname' => "{$name}-{$suffix}"])
+        ?: $DB->get_field('course', 'id', ['shortname' => "{$site}-{$suffix}"]);
+    if ($id && $name !== $site) {
+        $DB->set_field('course', 'shortname', "{$name}-{$suffix}", ['id' => $id]);
+        rebuild_course_cache((int) $id, true);
+    }
+    if ($id) {
+        // Images built before fixture.php did this lack the course grade category and item; see there.
+        grade_category::fetch_course_category((int) $id);
+        grade_item::fetch_course_item((int) $id);
+    }
+    $courses['LAB-' . $suffix] = $id;
 }
 echo json_encode([
     'provider' => $provider,
