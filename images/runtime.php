@@ -31,6 +31,20 @@ global $DB;
 // SQLite keep no logs; PostgreSQL sites keep them.
 if ($DB->get_dbfamily() === 'sqlite') {
     set_config('enabled_stores', '', 'tool_log');
+    // Moodle's SQLite driver keeps the rollback journal, where a request that reads and then
+    // writes fails at once while another request writes. WAL lets reads proceed during a
+    // write; the mode is stored in the database file.
+    try {
+        $wal = new PDO('sqlite:' . $DB->get_dbfilepath());
+        $wal->exec('PRAGMA busy_timeout=10000');
+        $mode = $wal->query('PRAGMA journal_mode=WAL')->fetchColumn();
+        if ($mode !== 'wal') {
+            fwrite(STDERR, "SQLite journal mode is {$mode}, not wal.\n");
+        }
+        $wal = null;
+    } catch (\Throwable $error) {
+        fwrite(STDERR, 'Unable to enable SQLite WAL: ' . $error->getMessage() . "\n");
+    }
 }
 $admin = get_admin();
 \core\session\manager::set_user($admin);
