@@ -186,6 +186,10 @@ try {
   for (const site of sites) await waitHealthy(site.container);
   if (database === 'pgsql') {
     for (const site of sites) await installFixture(site);
+  } else if (options.plugin && fs.existsSync(path.join(String(options.plugin), 'version.php'))) {
+    // Overlay only explicit plugin checkouts in disposable golden-image copies.
+    // Keep Core images intact and rebuild plugin caches before issuing tokens.
+    for (const site of sites.filter((entry) => entry.variant === 'moodlia')) await installFixture(site);
   }
   for (const site of sites) {
     // PHP notices may precede the fixture; runtime.php prints the JSON last.
