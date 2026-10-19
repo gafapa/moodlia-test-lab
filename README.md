@@ -46,7 +46,7 @@ The `moodlia-lab` package is public: pulls need no credentials.
 
 ```sh
 npm run qualify:live -- --source 4.5 --target 5.3 \
-  --package ../moodlia-sync/moodlia-sync-0.1.1.tgz \
+  --package 0.1.2 \
   --runner ../moodlia-sync/tools/live-qualification/runner
 ```
 
@@ -56,7 +56,7 @@ the report to `results/`, and removes every container, even on failure. When a
 run fails it also keeps the plans, CLI output, and synchronization state in
 `results/<run-id>-evidence/` (never the tokens); if apply reports that a course
 changed after planning, the evidence includes both courses exported twice.
-`--package` accepts a tarball or an npm version. `--database pgsql` installs
+`--package` accepts an existing tarball path or a bare npm version such as `0.1.2` (the runner expands it to `moodlia-sync@0.1.2`). To test an unpublished checkout, create its tarball first with `npm pack` in that repository and pass the actual file path. `--database pgsql` installs
 each site from the base image against its own PostgreSQL 17 (the minimum for
 Moodle 5.3) instead of SQLite; it needs `--plugin <moodle-local_moodlia checkout>`.
 
