@@ -1,9 +1,17 @@
-# MoodlIA test lab
+# MoodlIA Test Lab
 
 Disposable Moodle sites for testing MoodlIA packages against every supported
 Moodle branch, without installing Moodle for each run.
 
-## Golden images
+[Status](#status) · [Getting started](#getting-started) · [Usage](#usage) · [Development](#development) · [Security and privacy](#security-and-privacy) · [Documentation](#documentation) · [License](#license)
+
+## Status
+
+Development infrastructure for disposable Moodle qualification. Golden-image builds and scheduled workflows are separate from evidence that any particular application/version pairing has passed.
+
+## Getting started
+
+### Golden images
 
 `ghcr.io/gafapa/moodlia-lab:<branch>-<variant>` for branches 4.5, 5.0, 5.1,
 5.2, and 5.3, in two variants:
@@ -42,7 +50,9 @@ bash images/build.sh v4.5.12 moodlia moodlia-lab:4.5-moodlia ../moodle-local_moo
 
 The `moodlia-lab` package is public: pulls need no credentials.
 
-## Live qualification
+## Usage
+
+### Live qualification
 
 ```sh
 npm run qualify:live -- --source 4.5 --target 5.3 \
@@ -80,7 +90,9 @@ Each container is limited to 768 MiB and 0.75 CPU (`--memory`, `--cpus`) and
 labelled `moodlia-lab`, and PHP and nginx accept uploads up to 1 GiB for
 large-backup scenarios.
 
-## GitHub Actions
+## Development
+
+### GitHub Actions
 
 - `qualify.yml`: reusable (`workflow_call`) and manual qualification of one
   source/target pair.
@@ -93,10 +105,26 @@ large-backup scenarios.
 
 Actions minutes are free for public repositories on standard runners.
 
-## Shared hosts
+## Security and privacy
+
+Use fictional fixtures on disposable sites. Runtime tokens and administrator passwords are generated per container; keep them out of reports and repositories. Remove test containers and volumes after qualification. Never target a persistent teaching site.
+
+### Shared hosts
 
 Prefer Actions. On a shared host, keep to two sites at a time and remove lab
 images afterwards with `docker image prune --filter label=moodlia-lab`.
+
+## Documentation
+
+- [Project Pages](https://gafapa.github.io/moodlia-test-lab/)
+
+Build the repository documentation portal with `python tools/build-project-page.py`. Its status comes from this README; purpose and first steps are maintained in `docs/project-page.json`. The `pages.yml` workflow publishes the portal without deploying the application or changing `moodlia.com`.
+
+Shared qualification infrastructure for the [plugin](https://github.com/gafapa/moodle-local_moodlia), [Core](https://github.com/gafapa/moodle-core-cli) and [Sync](https://github.com/gafapa/moodlia-sync).
+
+- [Source code](https://github.com/gafapa/moodlia-test-lab)
+- [Issue tracker](https://github.com/gafapa/moodlia-test-lab/issues)
+- [MoodlIA website](https://moodlia.com)
 
 ## License
 
