@@ -15,6 +15,14 @@ from being mistaken for the version under qualification. Core sites retain
 their original Core-only service. Manual qualification exposes `plugin_ref` and
 `overlay_plugin` to make that selection explicit.
 
+On 2026-10-24, the [complete weekly qualification matrix](https://github.com/gafapa/moodlia-test-lab/actions/runs/40129063627)
+passed all 26 jobs: all 25 source/target combinations across Moodle branches
+4.5, 5.0, 5.1, 5.2 and 5.3 on SQLite, plus the PostgreSQL large-backup case.
+The run overlaid the plugin checkout containing the 0.1.221 fixes. The reports
+record the exact golden-image Moodle versions and package versions, including
+`moodlia-sync` 0.1.2 and its internal `moodlia` 0.4.1 dependency; this does not
+claim qualification of the independent public CLI 0.5.1 or production sites.
+
 ## Getting started
 
 ### Golden images
