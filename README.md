@@ -9,6 +9,12 @@ Moodle branch, without installing Moodle for each run.
 
 Development infrastructure for disposable Moodle qualification. Golden-image builds and scheduled workflows are separate from evidence that any particular application/version pairing has passed.
 
+The weekly matrix overlays the selected plugin checkout into disposable MoodlIA
+sites before issuing tokens. This prevents older golden-image plugin versions
+from being mistaken for the version under qualification. Core sites retain
+their original Core-only service. Manual qualification exposes `plugin_ref` and
+`overlay_plugin` to make that selection explicit.
+
 ## Getting started
 
 ### Golden images

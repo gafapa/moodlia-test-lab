@@ -20,6 +20,8 @@ jobs:
       source: ${{ matrix.source }}
       target: ${{ matrix.target }}
       package: latest
+      overlay_plugin: true
+      plugin_ref: main
 
   postgresql:
     uses: ./.github/workflows/qualify.yml

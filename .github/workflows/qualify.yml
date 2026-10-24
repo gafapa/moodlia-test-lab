@@ -51,6 +51,13 @@ on:
         required: true
       sync_ref:
         default: main
+      plugin_ref:
+        description: Plugin revision installed in disposable test sites
+        default: main
+      overlay_plugin:
+        description: Overlay the plugin checkout in SQLite golden images
+        type: boolean
+        default: true
       database:
         default: sqlite3
 

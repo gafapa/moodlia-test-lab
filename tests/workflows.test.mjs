@@ -22,11 +22,13 @@ test('golden images never bake secrets and runtime issues them', () => {
   assert.match(runtime, /generate_token/);
 });
 
-test('the nightly matrix covers every source and target pair and PostgreSQL', () => {
+test('the weekly matrix covers every source and target pair with the selected plugin', () => {
   const nightly = read('.github/workflows/nightly.yml');
   assert.match(nightly, /source: \['4\.5', '5\.0', '5\.1', '5\.2', '5\.3'\]/);
   assert.match(nightly, /target: \['4\.5', '5\.0', '5\.1', '5\.2', '5\.3'\]/);
   assert.match(nightly, /database: pgsql/);
+  assert.match(nightly, /overlay_plugin: true/);
+  assert.match(nightly, /plugin_ref: main/);
 });
 
 test('pull request checks need no credentials and qualification inputs stay out of shell source', () => {
